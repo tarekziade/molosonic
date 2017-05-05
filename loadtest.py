@@ -9,42 +9,36 @@ from arsenic.services import Geckodriver
 
 @molotov.setup_session()
 async def _setup_session(wid, session):
-
-    async def _init_session(auth=None):
-        return Session(session, auth)
-
-    Client = Engine(http_session=_init_session,
-                    start_process=start_process,
-                    sleep=sleep)
-
-    firefox = Firefox(Client)
-    _firefox = await firefox.start()
-    session.firefox = _firefox
-    session._firefox = firefox
+    session.firefox_session = FirefoxSession(session)
+    session.firefox = await session.firefox_session.start()
 
 
 @molotov.teardown_session()
 async def _teardown_session(wid, session):
-    await session._firefox.stop()
+    await session.firefox_session.stop()
 
 
 
-class Firefox(object):
-    def __init__(self, client):
-        self.client = client
+class FirefoxSession(object):
+    def __init__(self, session):
+        self.session = session
 
     async def start(self):
+        async def _init_session(auth=None):
+            return Session(self.session, auth)
+
+        Client = Engine(http_session=_init_session,
+                        start_process=start_process,
+                        sleep=sleep)
         self.gecko = Geckodriver()
-        self.driver = await self.gecko.start(self.client)
-        firefox = await self.driver.new_session(_Firefox(), '')
-        firefox.wait = self.driver.wait     # XXX quick hack to get unified APIs
-        self.firefox = firefox
-        return firefox
+        self.driver = await self.gecko.start(Client)
+        self.firefox = await self.driver.new_session(_Firefox(), '')
+        self.firefox.wait = self.driver.wait     # XXX quick hack to get unified APIs
+        return self.firefox
 
     async def stop(self):
         await self.firefox.close()
         await self.driver.close()
-        await self.gecko.close()
 
 
 @molotov.scenario(1)
