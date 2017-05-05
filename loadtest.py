@@ -1,5 +1,6 @@
 from functools import partial
 import molotov
+from asyncio import wait_for
 
 from arsenic.engines.aiohttp import Engine, start_process, sleep, Session
 from arsenic.browsers import Firefox as _Firefox
@@ -33,12 +34,12 @@ class FirefoxSession(object):
         self.gecko = Geckodriver()
         self.driver = await self.gecko.start(Client)
         self.firefox = await self.driver.new_session(_Firefox(), '')
-        self.firefox.wait = self.driver.wait     # XXX quick hack to get unified APIs
         return self.firefox
 
     async def stop(self):
         await self.firefox.close()
         await self.driver.close()
+
 
 
 @molotov.scenario(1)
@@ -47,6 +48,6 @@ async def example(session):
     # go to example.com
     await firefox.get('http://example.com')
     # wait up to 5 seconds to get the h1 element from the page
-    h1 = await firefox.wait(5, firefox.get_element, 'h1')
+    h1 = await wait_for(firefox.get_element('h1'), timeout=5)
     # print the text of the h1 element
     print(await h1.get_text())
