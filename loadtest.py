@@ -34,8 +34,8 @@ class Firefox(object):
         self.client = client
 
     async def start(self):
-        self.driver_cm = Geckodriver()
-        self.driver = await self.driver_cm.start(self.client)
+        self.gecko = Geckodriver()
+        self.driver = await self.gecko.start(self.client)
         firefox = await self.driver.new_session(_Firefox(), '')
         firefox.wait = self.driver.wait
         self.firefox = firefox
@@ -44,6 +44,7 @@ class Firefox(object):
     async def stop(self):
         await self.firefox.close()
         await self.driver.close()
+        await self.gecko.close()
 
 
 @molotov.scenario(1)
