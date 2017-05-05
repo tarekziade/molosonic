@@ -17,33 +17,41 @@ async def _setup_session(wid, session):
                     start_process=start_process,
                     sleep=sleep)
 
-    session.Client = Client
+    firefox = Firefox(Client)
+    _firefox = await firefox.start()
+    session.firefox = _firefox
+    session._firefox = firefox
+
+
+@molotov.teardown_session()
+async def _teardown_session(wid, session):
+    await session._firefox.stop()
+
 
 
 class Firefox(object):
-    def __init__(self, session):
-        self.session = session
+    def __init__(self, client):
+        self.client = client
 
-    async def __aenter__(self):
-        self.driver_cm = Geckodriver().run(self.session.Client)
-        driver = await self.driver_cm.__aenter__()
-        self.firefox_cm = driver.session(_Firefox())
-        firefox = await self.firefox_cm.__aenter__()
-        firefox.wait = driver.wait
+    async def start(self):
+        self.driver_cm = Geckodriver()
+        self.driver = await self.driver_cm.start(self.client)
+        firefox = await self.driver.new_session(_Firefox(), '')
+        firefox.wait = self.driver.wait
+        self.firefox = firefox
         return firefox
 
-    async def __aexit__(self, exc_type, exc, tb):
-        await self.firefox_cm.__aexit__(exc_type, exc, tb)
-        await self.driver_cm.__aexit__(exc_type, exc, tb)
-
+    async def stop(self):
+        await self.firefox.close()
+        await self.driver.close()
 
 
 @molotov.scenario(1)
 async def example(session):
-    async with Firefox(session) as firefox:
-            # go to example.com
-            await firefox.get('http://example.com')
-            # wait up to 5 seconds to get the h1 element from the page
-            h1 = await firefox.wait(5, firefox.get_element, 'h1')
-            # print the text of the h1 element
-            print(await h1.get_text())
+    firefox = session.firefox
+    # go to example.com
+    await firefox.get('http://example.com')
+    # wait up to 5 seconds to get the h1 element from the page
+    h1 = await firefox.wait(5, firefox.get_element, 'h1')
+    # print the text of the h1 element
+    print(await h1.get_text())
