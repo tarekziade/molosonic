@@ -37,7 +37,7 @@ class Firefox(object):
         self.gecko = Geckodriver()
         self.driver = await self.gecko.start(self.client)
         firefox = await self.driver.new_session(_Firefox(), '')
-        firefox.wait = self.driver.wait
+        firefox.wait = self.driver.wait     # XXX quick hack to get unified APIs
         self.firefox = firefox
         return firefox
 
