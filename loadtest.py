@@ -1,6 +1,5 @@
 from functools import partial
 import molotov
-from asyncio import wait_for
 
 from arsenic.engines.aiohttp import Engine, start_process, sleep, Session
 from arsenic.browsers import Firefox as _Firefox
@@ -47,7 +46,9 @@ async def example(session):
     firefox = session.firefox
     # go to example.com
     await firefox.get('http://example.com')
+
     # wait up to 5 seconds to get the h1 element from the page
-    h1 = await wait_for(firefox.get_element('h1'), timeout=5)
+    h1 = await firefox.wait_for_element(5, 'h1')
+
     # print the text of the h1 element
     print(await h1.get_text())
