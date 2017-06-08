@@ -1,3 +1,5 @@
+import os
+import binascii
 import asyncio
 from arsenic.errors import NoSuchElement, ArsenicTimeout, JavascriptError
 
@@ -25,7 +27,7 @@ async def _teardown_session(wid, session):
 
 _SET = """
 var editor = require('ep_etherpad-lite/static/js/pad_editor').padeditor.ace;
-editor.importText('yeah');
+editor.importText('%s');
 """
 
 
@@ -44,6 +46,7 @@ div.textContent = text;
 """
 
 
+
 @molotov.scenario(1)
 async def example(session):
     firefox = session.browser
@@ -56,37 +59,36 @@ async def example(session):
 
         # wait for worker 4 to edit the pad
         await ev.wait()
+        text = molotov.get_var('text')
 
-        not_loaded = True
+        while True:
+            await asyncio.sleep(1.)
 
-        while not_loaded:
             # wait for the pad to fill
             try:
                 await firefox.execute_script(_GET)
                 el = await firefox.wait_for_element(5, '#padText')
             except (NoSuchElement, ArsenicTimeout, JavascriptError):
-                asyncio.sleep(1.)
                 continue
-            else:
-                content = await el.get_text()
-                not_loaded = content == '(awaiting init)'
-                if not_loaded:
-                    asyncio.sleep(1.)
-        # content is the content of the pad we can check once it's
-        # edited by worker 9
 
+            content = await el.get_text()
+            if content == text:
+                break
     else:
+
+        text = binascii.hexlify(os.urandom(128)).decode()
+        molotov.set_var('text', text)
+
         # worker 4 is adding content into the pad
         # go to the pad
         await firefox.get(PAD)
-
-        not_edited = True
-        while not_edited:
+        while True:
+            await asyncio.sleep(1.)
             try:
-                await firefox.execute_script(_SET)
+                await firefox.execute_script(_SET % text)
+                break
             except (NoSuchElement, ArsenicTimeout, JavascriptError):
-                asyncio.sleep(1.)
-            else:
-                not_edited = False
+                continue
 
+        #import pdb; pdb.set_trace()  <---- WHY IS THIS NEEDED
         ev.set()
