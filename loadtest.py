@@ -90,5 +90,5 @@ async def example(session):
             except (NoSuchElement, ArsenicTimeout, JavascriptError):
                 continue
 
-        #import pdb; pdb.set_trace()  <---- WHY IS THIS NEEDED
+        await asyncio.sleep(10.)
         ev.set()
