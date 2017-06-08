@@ -23,6 +23,12 @@ async def _teardown_session(wid, session):
     await teardown_browser(session)
 
 
+_SET = """
+var editor = require('ep_etherpad-lite/static/js/pad_editor').padeditor.ace;
+editor.importText('yeah');
+"""
+
+
 _GET = """
 var text = require('ep_etherpad-lite/static/js/pad_editor').padeditor.ace.exportText();
 
@@ -71,5 +77,16 @@ async def example(session):
 
     else:
         # worker 4 is adding content into the pad
-        # XXX edit pad
+        # go to the pad
+        await firefox.get(PAD)
+
+        not_edited = True
+        while not_edited:
+            try:
+                await firefox.execute_script(_SET)
+            except (NoSuchElement, ArsenicTimeout, JavascriptError):
+                asyncio.sleep(1.)
+            else:
+                not_edited = False
+
         ev.set()
