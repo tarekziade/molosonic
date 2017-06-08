@@ -51,11 +51,11 @@ async def example(session):
     wid = session.worker_id
 
     if wid != 4:
-        # wait for worker 4 to edit the pad
-        await ev.wait()
-
         # go to the pad
         await firefox.get(PAD)
+
+        # wait for worker 4 to edit the pad
+        await ev.wait()
 
         not_loaded = True
 
