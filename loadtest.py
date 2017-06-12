@@ -37,6 +37,11 @@ def FiveEvents():
     return Counter(5)
 
 
+@molotov.global_setup()
+def init_test(args):
+    if args.workers < 5:
+        raise Exception('We need at least 5 workers for that test')
+
 
 @molotov.setup_session()
 async def _setup_session(wid, session):
