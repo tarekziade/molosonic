@@ -25,21 +25,28 @@ div.textContent = text;
 
 
 class EtherpadLite(object):
-    def __init__(self, browser, url):
+    def __init__(self, browser, url, sleep=1.):
         self.browser = browser
         self.url = url
+        self.sleep = sleep
 
     async def visit(self):
         return (await self.browser.get(self.url))
 
     async def get_text(self):
-        await self.browser.execute_script(_GET)
-        el = await self.browser.wait_for_element(5, '#padText')
-        return (await el.get_text())
+        while True:
+            await asyncio.sleep(self.sleep)
+            try:
+                await self.browser.execute_script(_GET)
+                el = await self.browser.wait_for_element(5, '#padText')
+            except (NoSuchElement, ArsenicTimeout, JavascriptError):
+                continue
+            else:
+                return (await el.get_text())
 
     async def set_text(self, text):
         while True:
-            await asyncio.sleep(1.)
+            await asyncio.sleep(self.sleep)
             try:
 
                 await self.browser.execute_script(_SET % text)

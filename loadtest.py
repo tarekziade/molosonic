@@ -69,14 +69,7 @@ async def example(session):
         text = molotov.get_var('text')
 
         while True:
-            await asyncio.sleep(1.)
-
-            # wait for the pad to fill
-            try:
-                content = await pad.get_text()
-            except (NoSuchElement, ArsenicTimeout, JavascriptError):
-                continue
-
+            content = await pad.get_text()
             if content == text:
                 await reads.incr()
                 break
