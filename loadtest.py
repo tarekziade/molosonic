@@ -1,3 +1,4 @@
+from functools import partial
 import os
 import binascii
 import asyncio
@@ -5,6 +6,7 @@ from arsenic.errors import NoSuchElement, ArsenicTimeout, JavascriptError
 
 from molosonic import setup_browser, teardown_browser
 import molotov
+from etherpad import EtherpadLite
 
 
 PAD = 'http://pad.mocotoolsprod.net/p/molosonic'
@@ -32,11 +34,6 @@ class Counter(object):
             await self._condition.wait()
 
 
-
-def FiveEvents():
-    return Counter(5)
-
-
 @molotov.global_setup()
 def init_test(args):
     if args.workers < 5:
@@ -53,38 +50,19 @@ async def _teardown_session(wid, session):
     await teardown_browser(session)
 
 
-_SET = """
-var editor = require('ep_etherpad-lite/static/js/pad_editor').padeditor.ace;
-editor.importText('%s');
-"""
-
-
-_GET = """
-var text = require('ep_etherpad-lite/static/js/pad_editor').padeditor.ace.exportText();
-
-var div = document.getElementById('padText');
-if (!div) {
-    var div = document.createElement('div');
-    div.id = 'padText';
-    document.body.appendChild(div);
-}
-
-div.textContent = text;
-
-"""
-
-
 
 @molotov.scenario(1)
 async def example(session):
     firefox = session.browser
+    pad = molotov.get_var('pad', partial(EtherpadLite, firefox, PAD))
     write = molotov.get_var('write' + str(session.step), factory=asyncio.Event)
-    reads = molotov.get_var('reads' + str(session.step), factory=FiveEvents)
+    reads = molotov.get_var('reads' + str(session.step),
+                            factory=partial(Counter, 5))
     wid = session.worker_id
 
     if wid != 4:
         # go to the pad
-        await firefox.get(PAD)
+        await pad.visit()
 
         # wait for worker 4 to edit the pad
         await write.wait()
@@ -95,12 +73,10 @@ async def example(session):
 
             # wait for the pad to fill
             try:
-                await firefox.execute_script(_GET)
-                el = await firefox.wait_for_element(5, '#padText')
+                content = await pad.get_text()
             except (NoSuchElement, ArsenicTimeout, JavascriptError):
                 continue
 
-            content = await el.get_text()
             if content == text:
                 await reads.incr()
                 break
@@ -114,15 +90,7 @@ async def example(session):
         molotov.set_var('text', text)
 
         # worker 4 is adding content into the pad
-        # go to the pad
-        await firefox.get(PAD)
-        while True:
-            await asyncio.sleep(1.)
-            try:
-                await firefox.execute_script(_SET % text)
-                break
-            except (NoSuchElement, ArsenicTimeout, JavascriptError):
-                continue
-
+        await pad.visit()
+        await pad.set_text(text)
         await asyncio.sleep(10.)
         write.set()
