@@ -24,6 +24,29 @@ div.textContent = text;
 """
 
 
+class Counter(object):
+    def __init__(self, until):
+        self._current = 1
+        self._until = until
+        self._condition = asyncio.Condition()
+
+    def _is_set(self):
+        return self._current == self._until
+
+    async def incr(self):
+        if self._is_set():
+            return
+        self._current += 1
+        if self._current == self._until:
+            with await self._condition:
+                self._condition.notify_all()
+
+    async def wait(self):
+        with await self._condition:
+            await self._condition.wait()
+
+
+
 class EtherpadLite(object):
     def __init__(self, browser, url, sleep=1.):
         self.browser = browser
