@@ -24,16 +24,20 @@ div.textContent = text;
 """
 
 
-class Counter(object):
-    def __init__(self, until):
+class Notifier(object):
+    def __init__(self, readers=5):
         self._current = 1
-        self._until = until
+        self._until = readers
         self._condition = asyncio.Condition()
+        self._writer = asyncio.Event()
 
     def _is_set(self):
         return self._current == self._until
 
-    async def incr(self):
+    async def wait_for_writer(self):
+        await self._writer.wait()
+
+    async def one_read(self):
         if self._is_set():
             return
         self._current += 1
@@ -41,7 +45,10 @@ class Counter(object):
             with await self._condition:
                 self._condition.notify_all()
 
-    async def wait(self):
+    def written(self):
+        self._writer.set()
+
+    async def wait_for_readers(self):
         with await self._condition:
             await self._condition.wait()
 

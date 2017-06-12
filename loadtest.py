@@ -2,11 +2,9 @@ from functools import partial
 import os
 import binascii
 import asyncio
-
 import molotov
 from molosonic import setup_browser, teardown_browser
-
-from etherpad import EtherpadLite, Counter
+from etherpad import EtherpadLite, Notifier
 
 
 PAD = 'http://pad.mocotoolsprod.net/p/molosonic'
@@ -31,11 +29,11 @@ async def _teardown_session(wid, session):
 
 @molotov.scenario(1)
 async def example(session):
+    get_var = molotov.get_var
     firefox = session.browser
-    pad = molotov.get_var('pad', partial(EtherpadLite, firefox, PAD))
-    write = molotov.get_var('write' + str(session.step), factory=asyncio.Event)
-    reads = molotov.get_var('reads' + str(session.step),
-                            factory=partial(Counter, 5))
+    pad = get_var('pad', partial(EtherpadLite, firefox, PAD))
+    notifier = get_var('notifier' + str(session.step),
+                       factory=Notifier)
     wid = session.worker_id
 
     if wid != 4:
@@ -45,24 +43,26 @@ async def example(session):
         await pad.visit()
 
         # wait for worker #4 to edit the pad
-        await write.wait()
+        await notifier.wait_for_writer()
 
         # get the text
-        text = molotov.get_var('text')
+        text = get_var('text')
 
         # read the pad until its text is edited by worker #4
         while True:
             content = await pad.get_text()
             if content == text:
                 # notify that the pad was read
-                await reads.incr()
+                await notifier.one_read()
                 break
     else:
-        # I am worker 4! I write in the pad
+        # I amuworker 4! I write in the pad
         if session.step > 1:
             # waiting for the previous readers to have finished
             # before we start a new round
-            await molotov.get_var('reads' + str(session.step - 1)).wait()
+            previous_notifier = get_var('notifier' + str(session.step),
+                                        factory=Notifier)
+            await previous_notifier.wait_for_readers()
 
         # generate a random text
         text = binascii.hexlify(os.urandom(128)).decode()
@@ -74,4 +74,4 @@ async def example(session):
 
         # sleep 10 seconds before notifying readers
         await asyncio.sleep(10.)
-        write.set()
+        notifier.written()
