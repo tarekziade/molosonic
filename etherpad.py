@@ -28,7 +28,7 @@ class Notifier(object):
     def __init__(self, readers=5):
         self._current = 1
         self._until = readers
-        self._condition = asyncio.Condition()
+        self._readers = asyncio.Event()
         self._writer = asyncio.Event()
 
     def _is_set(self):
@@ -42,15 +42,13 @@ class Notifier(object):
             return
         self._current += 1
         if self._current == self._until:
-            with await self._condition:
-                self._condition.notify_all()
+            self._readers.set()
 
     def written(self):
         self._writer.set()
 
     async def wait_for_readers(self):
-        with await self._condition:
-            await self._condition.wait()
+        await self._readers.wait()
 
 
 
