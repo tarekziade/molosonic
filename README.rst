@@ -7,9 +7,17 @@ Molosonic is a Molotov extension to use a real browser in your
 Molosonic integrates `Arsenic <http://arsenic.readthedocs.io>`_ into the Molotov
 session, so one browser instance is launched per worker.
 
-Installation::
+Molosonic was not release yet on PyPI, so to try it, make sure you
+have Python 3 and virtualenv and geckodriver in the PATH, then :
 
-    $ pip install molosonic
+    $ virtualenv .
+    $ bin/python setup.py develop
+
+To make sure your setup works, try this example::
+
+    $ bin/molotov -w 5 --max-runs 1 examples/simple.py
+
+It will run five browsers and interact with example.com
 
 Once installed, you can use **setup_browser** and
 **teardown_browser** to create a browser instance.

@@ -1,0 +1,11 @@
+*.un~
+*.pyc
+.tox/
+*.egg-info/
+venv/
+dist/
+.idea/
+.coverage
+pip-selfcheck.json
+include
+lib

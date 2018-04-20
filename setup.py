@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-from molotov import __version__
 
 
 install_requires = ['molotov', 'arsenic']
