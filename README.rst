@@ -8,7 +8,7 @@ Molosonic integrates `Arsenic <http://arsenic.readthedocs.io>`_ into the Molotov
 session, so one browser instance is launched per worker.
 
 Molosonic was not release yet on PyPI, so to try it, make sure you
-have Python 3 and virtualenv and geckodriver in the PATH, then :
+have Python 3 and virtualenv and geckodriver in the PATH, then::
 
     $ virtualenv .
     $ bin/python setup.py develop
